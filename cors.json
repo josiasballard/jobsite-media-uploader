@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://aes-media-uploader.web.app"],
+    "method": ["GET", "POST", "PUT"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type"]
+  }
+]
