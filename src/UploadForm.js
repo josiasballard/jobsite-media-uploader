@@ -1,82 +1,131 @@
-// UploadForm.js
-
 import React, { useState } from 'react';
 import { storage } from './firebase';
 import { ref, uploadBytesResumable } from 'firebase/storage';
 
+const MAX_FILES = 8;
+
 const UploadForm = () => {
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [jobId, setJobId] = useState('');
   const [desc, setDesc] = useState('');
-  const [progress, setProgress] = useState(0);
+  const [progressList, setProgressList] = useState([]);
   const [message, setMessage] = useState('');
+  const [previewFile, setPreviewFile] = useState(null);
+
+  const handleFilesChange = (e) => {
+    const selected = Array.from(e.target.files).slice(0, MAX_FILES);
+    setFiles(selected);
+    setProgressList(Array(selected.length).fill(0));
+  };
 
   const handleUpload = (e) => {
     e.preventDefault();
     setMessage('');
 
-    if (!file || !jobId) {
-      alert("Please select a file and enter a Job ID.");
+    if (!files.length || !jobId) {
+      alert('Please select at least one file and enter a Job ID.');
       return;
     }
 
-    const path = `uploads/${jobId}/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, path);
-    console.log("📁 Uploading:", file.name, "to", path);
+    files.forEach((file, index) => {
+      const path = `uploads/${jobId}/${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, path);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setProgress(pct.toFixed(0));
-      },
-      (error) => {
-        console.error("❌ Upload error:", error);
-        setMessage("Upload failed. Please try again.");
-      },
-      () => {
-        console.log("✅ Upload complete");
-        setMessage("Upload successful!");
-        setFile(null);
-        setJobId('');
-        setDesc('');
-        setProgress(0);
-      }
-    );
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgressList((prev) => {
+            const updated = [...prev];
+            updated[index] = pct.toFixed(0);
+            return updated;
+          });
+        },
+        (error) => {
+          console.error('❌ Upload error:', error);
+          setMessage('One or more uploads failed.');
+        },
+        () => {
+          if (index === files.length - 1) {
+            setMessage('✅ All uploads complete!');
+            setFiles([]);
+            setJobId('');
+            setDesc('');
+            setProgressList([]);
+          }
+        }
+      );
+    });
   };
 
   return (
-    <form className="upload-form" onSubmit={handleUpload}>
-      <h2>Upload Jobsite Photo</h2>
-      
-      <input
-        type="text"
-        placeholder="Job ID"
-        value={jobId}
-        onChange={(e) => setJobId(e.target.value)}
-        required
-      />
+    <>
+      <form className="upload-form" onSubmit={handleUpload}>
+        <h2>Upload Jobsite Media</h2>
 
-      <textarea
-        placeholder="Description (optional)"
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-      />
+        <input
+          type="text"
+          placeholder="Job ID"
+          value={jobId}
+          onChange={(e) => setJobId(e.target.value)}
+          required
+        />
 
-      <input
-        type="file"
-        onChange={(e) => setFile(e.target.files[0])}
-        accept="image/*,video/*"
-        required
-      />
+        <textarea
+          placeholder="Description (optional)"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+        />
 
-      <button type="submit">Upload</button>
+        <input
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          onChange={handleFilesChange}
+        />
 
-      {progress > 0 && <p>Uploading: {progress}%</p>}
-      {message && <p className="message">{message}</p>}
-    </form>
+        <div className="previews">
+          {files.map((file, idx) => {
+            const url = URL.createObjectURL(file);
+            return (
+              <div
+                key={idx}
+                className="preview-box"
+                onClick={() => setPreviewFile({ file, url })}
+              >
+                {file.type.startsWith('image') ? (
+                  <img src={url} alt="preview" className="preview" />
+                ) : (
+                  <video src={url} className="preview" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <button type="submit">Upload</button>
+
+        {progressList.map((p, i) => (
+          <p key={i}>File {i + 1}: {p}%</p>
+        ))}
+
+        {message && <p className="message">{message}</p>}
+      </form>
+
+      {previewFile && (
+        <div className="modal" onClick={() => setPreviewFile(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setPreviewFile(null)}>✕</button>
+            {previewFile.file.type.startsWith('image') ? (
+              <img src={previewFile.url} alt="full" className="modal-media" />
+            ) : (
+              <video src={previewFile.url} controls className="modal-media" />
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
