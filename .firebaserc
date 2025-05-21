@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "aes-media-uploader"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }
