@@ -8,14 +8,17 @@ const UploadForm = () => {
   const [files, setFiles] = useState([]);
   const [jobId, setJobId] = useState('');
   const [desc, setDesc] = useState('');
-  const [progressList, setProgressList] = useState([]);
+  const [userName, setUserName] = useState('');
+  const [uploadingIndex, setUploadingIndex] = useState(null);
   const [message, setMessage] = useState('');
   const [previewFile, setPreviewFile] = useState(null);
 
   const handleFilesChange = (e) => {
-    const selected = Array.from(e.target.files).slice(0, MAX_FILES);
-    setFiles(selected);
-    setProgressList(Array(selected.length).fill(0));
+    const selected = Array.from(e.target.files);
+    setFiles((prev) => {
+      const merged = [...prev, ...selected].slice(0, MAX_FILES);
+      return merged;
+    });
   };
 
   const handleUpload = (e) => {
@@ -27,32 +30,43 @@ const UploadForm = () => {
       return;
     }
 
+    let total = files.length;
+    let current = 1;
+
     files.forEach((file, index) => {
       const path = `uploads/${jobId}/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, path);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      const metadata = {
+        customMetadata: {
+          jobId,
+          description: desc || '',
+          uploader: userName || '',
+        },
+      };
+
+      const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+
+      setUploadingIndex({ current, total });
 
       uploadTask.on(
         'state_changed',
-        (snapshot) => {
-          const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgressList((prev) => {
-            const updated = [...prev];
-            updated[index] = pct.toFixed(0);
-            return updated;
-          });
-        },
+        null,
         (error) => {
           console.error('❌ Upload error:', error);
           setMessage('One or more uploads failed.');
         },
         () => {
-          if (index === files.length - 1) {
+          if (index === total - 1) {
             setMessage('✅ All uploads complete!');
             setFiles([]);
             setJobId('');
             setDesc('');
-            setProgressList([]);
+            setUserName('');
+            setUploadingIndex(null);
+          } else {
+            setUploadingIndex({ current: current + 1, total });
+            current += 1;
           }
         }
       );
@@ -66,7 +80,7 @@ const UploadForm = () => {
 
         <input
           type="text"
-          placeholder="Job ID"
+          placeholder="Enter Job ID"
           value={jobId}
           onChange={(e) => setJobId(e.target.value)}
           required
@@ -79,11 +93,19 @@ const UploadForm = () => {
         />
 
         <input
+          type="text"
+          placeholder="Your Name (optional)"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+        />
+
+        <input
           type="file"
           accept="image/*,video/*"
           multiple
           onChange={handleFilesChange}
         />
+        <p className="file-count">{files.length} of {MAX_FILES} files selected</p>
 
         <div className="previews">
           {files.map((file, idx) => {
@@ -104,11 +126,13 @@ const UploadForm = () => {
           })}
         </div>
 
-        <button type="submit">Upload</button>
+        <div className="upload-btn-container">
+          <button type="submit">Upload</button>
+        </div>
 
-        {progressList.map((p, i) => (
-          <p key={i}>File {i + 1}: {p}%</p>
-        ))}
+        {uploadingIndex && (
+          <p>Uploading {uploadingIndex.current} of {uploadingIndex.total}</p>
+        )}
 
         {message && <p className="message">{message}</p>}
       </form>
