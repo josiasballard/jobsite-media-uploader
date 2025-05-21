@@ -1,0 +1,16 @@
+.App {
+  text-align: center;
+  padding: 2rem;
+  font-family: sans-serif;
+}
+input, textarea {
+  display: block;
+  margin: 0.5rem auto;
+  padding: 0.5rem;
+  width: 90%;
+  max-width: 400px;
+}
+button {
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+}
