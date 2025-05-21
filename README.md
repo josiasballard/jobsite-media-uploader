@@ -37,18 +37,12 @@ We needed a simple, fast way for crew members and subcontractors to submit jobsi
 ## 📂 Folder Structure
 
 ├── public/
-
-│ └── AES Logo (primary).png
-
+  └── aes-logo.png
 ├── src/
-
-│ ├── App.js
-
-│ ├── App.css
-
-│ ├── UploadForm.js
-
-│ └── firebase.js
+  ├── App.js 
+  ├── App.css
+  ├── UploadForm.js
+  ├── firebase.js
 
 
 ---
