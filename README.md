@@ -42,13 +42,13 @@ We needed a simple, fast way for crew members and subcontractors to submit jobsi
   
 ├── src/
 
-  ├── App.js 
+  └── App.js 
   
-  ├── App.css
+  └── App.css
   
-  ├── UploadForm.js
+  └── UploadForm.js
   
-  ├── firebase.js
+  └── firebase.js
 
 
 ---
